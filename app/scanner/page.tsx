@@ -19,6 +19,7 @@ export default function Scanner() {
   const [totalHoje, setTotalHoje] = useState(0)
   const [status, setStatus] = useState<'aguardando' | 'processando' | 'sucesso' | 'erro'>('aguardando')
   const processando = useRef(false)
+  const scannerInstance = useRef<unknown>(null)
 
   // Fallback manual
   const [pendente, setPendente] = useState<{ codigo: string } | null>(null)
@@ -77,8 +78,6 @@ export default function Scanner() {
 
     return () => { scanner?.clear().catch(() => {}) }
   }, [userId])
-
-  const scannerInstance = useRef<unknown>(null)
 
   async function salvarEntrega(codigo: string, cep: string, endereco: string, bairro = '') {
     const { error } = await supabase.from('entregas').insert({
