@@ -19,6 +19,7 @@ export default function Scanner() {
   const [status, setStatus] = useState<'aguardando' | 'processando' | 'sucesso' | 'erro'>('aguardando')
   const processando = useRef(false)
   const scannerInstance = useRef<unknown>(null)
+  const [erroCam, setErroCam] = useState(false)
 
   // Fallback manual
   const [pendente, setPendente] = useState<{ codigo: string } | null>(null)
@@ -70,7 +71,7 @@ export default function Scanner() {
           }
         },
         () => {}
-      ).catch(() => {})
+      ).catch(() => setErroCam(true))
 
       scannerInstance.current = qr
     })
@@ -170,13 +171,30 @@ export default function Scanner() {
         )}
 
         {/* Scanner */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-          <div id="scanner-container" />
-        </div>
-
-        <p className="text-center text-xs text-gray-400">
-          Aponte para o código de barras ou QR code da etiqueta
-        </p>
+        {erroCam ? (
+          <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+            <p className="text-4xl mb-3">📵</p>
+            <p className="font-semibold text-gray-700 mb-1">Câmera indisponível</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Outro app pode estar usando a câmera. Feche o WhatsApp ou outros apps e tente novamente.
+            </p>
+            <button
+              onClick={() => { setErroCam(false); window.location.reload() }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div id="scanner-container" />
+            </div>
+            <p className="text-center text-xs text-gray-400">
+              Aponte para o código de barras ou QR code da etiqueta
+            </p>
+          </>
+        )}
 
         {/* Fallback manual */}
         {pendente && (
