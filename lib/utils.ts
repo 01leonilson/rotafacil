@@ -28,10 +28,17 @@ export async function buscarEnderecoDetalhado(cep: string): Promise<EnderecoDeta
   }
 }
 
-export function montarEndereco(det: EnderecoDetalhado, numero?: string): string {
-  const num = numero?.trim()
-  const partes = [det.logradouro, num].filter(Boolean).join(', ')
-  return `${partes}, ${det.bairro} - ${det.localidade}/${det.uf}`
+export function montarEndereco(
+  det: EnderecoDetalhado,
+  opts?: { numero?: string; qd?: string; lote?: string }
+): string {
+  const { numero, qd, lote } = opts ?? {}
+  const partes: string[] = []
+  if (det.logradouro) partes.push(det.logradouro)
+  if (qd)            partes.push(`QD ${qd}`)
+  if (lote)          partes.push(`Lt ${lote}`)
+  if (numero)        partes.push(numero)
+  return `${partes.join(', ')}, ${det.bairro} - ${det.localidade}/${det.uf}`
 }
 
 export async function buscarEndereco(cep: string): Promise<string> {
