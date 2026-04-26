@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { extrairCep, buscarEndereco } from '@/lib/utils'
+import { extrairCepAutomatico } from '@/lib/utils'
 import NavBar from '@/components/NavBar'
 
 export default function Scanner() {
@@ -50,8 +50,7 @@ export default function Scanner() {
           setStatus('processando')
           setUltimoCodigo(decodedText)
 
-          const cep = extrairCep(decodedText)
-          const endereco = cep ? await buscarEndereco(cep) : ''
+          const { cep, endereco } = await extrairCepAutomatico(decodedText)
 
           const { error } = await supabase.from('entregas').insert({
             user_id: userId,
@@ -122,7 +121,7 @@ export default function Scanner() {
         )}
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Aponte a câmera para o código de barras ou QR code da etiqueta
+          Para CEP automático, prefira o QR code da etiqueta quando disponível
         </p>
       </div>
 
