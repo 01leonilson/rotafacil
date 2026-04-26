@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { extrairCepAutomatico, buscarEndereco, formatarCep } from '@/lib/utils'
+import { extrairCepAutomatico, buscarEnderecoDetalhado, montarEndereco, formatarCep, type EnderecoDetalhado } from '@/lib/utils'
 import NavBar from '@/components/NavBar'
 
 export default function Scanner() {
@@ -18,6 +18,8 @@ export default function Scanner() {
   // Estado para entrada manual de CEP
   const [pendente, setPendente] = useState<{ codigo: string } | null>(null)
   const [cepManual, setCepManual] = useState('')
+  const [numeroManual, setNumeroManual] = useState('')
+  const [enderecoPreview, setEnderecoPreview] = useState<EnderecoDetalhado | null>(null)
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
@@ -98,6 +100,17 @@ export default function Scanner() {
     }, 1500)
   }
 
+  async function onCepChange(valor: string) {
+    const formatado = formatarInput(valor)
+    setCepManual(formatado)
+    setEnderecoPreview(null)
+    const numeros = formatado.replace(/\D/g, '')
+    if (numeros.length === 8) {
+      const det = await buscarEnderecoDetalhado(numeros)
+      setEnderecoPreview(det)
+    }
+  }
+
   async function confirmarCepManual() {
     if (!pendente) return
     const numeros = cepManual.replace(/\D/g, '')
@@ -105,9 +118,12 @@ export default function Scanner() {
 
     setSalvando(true)
     const cep = formatarCep(numeros)
-    const endereco = await buscarEndereco(numeros)
+    const det = enderecoPreview ?? await buscarEnderecoDetalhado(numeros)
+    const endereco = det ? montarEndereco(det, numeroManual) : ''
     await salvarEntrega(pendente.codigo, cep, endereco)
     setPendente(null)
+    setEnderecoPreview(null)
+    setNumeroManual('')
     setSalvando(false)
   }
 
@@ -146,19 +162,42 @@ export default function Scanner() {
           <div className="bg-white rounded-2xl shadow-md p-4 mb-4 border border-yellow-300">
             <p className="text-sm font-semibold text-gray-700 mb-1">CEP não identificado</p>
             <p className="text-xs text-gray-400 font-mono break-all mb-3">{pendente.codigo}</p>
-            <label className="text-xs text-gray-500 mb-1 block">Digite o CEP da etiqueta</label>
+
+            <label className="text-xs text-gray-500 mb-1 block">CEP da etiqueta</label>
             <input
               type="text"
               inputMode="numeric"
               placeholder="00000-000"
               value={cepManual}
-              onChange={e => setCepManual(formatarInput(e.target.value))}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-lg font-mono tracking-widest text-center focus:outline-none focus:border-blue-500 mb-3"
+              onChange={e => onCepChange(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-lg font-mono tracking-widest text-center focus:outline-none focus:border-blue-500 mb-2"
               autoFocus
             />
+
+            {enderecoPreview && (
+              <>
+                <p className="text-xs text-green-600 font-medium mb-3">
+                  {enderecoPreview.logradouro}, {enderecoPreview.bairro} — {enderecoPreview.localidade}/{enderecoPreview.uf}
+                </p>
+                <label className="text-xs text-gray-500 mb-1 block">Número</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Ex: 218"
+                  value={numeroManual}
+                  onChange={e => setNumeroManual(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-center focus:outline-none focus:border-blue-500 mb-3"
+                />
+              </>
+            )}
+
+            {!enderecoPreview && cepManual.replace(/\D/g, '').length === 8 && (
+              <p className="text-xs text-gray-400 mb-3">Buscando endereço...</p>
+            )}
+
             <div className="flex gap-2">
               <button
-                onClick={() => { setPendente(null); processando.current = false }}
+                onClick={() => { setPendente(null); setEnderecoPreview(null); setNumeroManual(''); processando.current = false }}
                 className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-medium"
               >
                 Cancelar

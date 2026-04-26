@@ -3,17 +3,40 @@ export function formatarCep(cep: string): string {
   return numeros.replace(/(\d{5})(\d{3})/, '$1-$2')
 }
 
-export async function buscarEndereco(cep: string): Promise<string> {
+export interface EnderecoDetalhado {
+  logradouro: string
+  bairro: string
+  localidade: string
+  uf: string
+}
+
+export async function buscarEnderecoDetalhado(cep: string): Promise<EnderecoDetalhado | null> {
   const numeros = cep.replace(/\D/g, '')
-  if (numeros.length !== 8) return ''
+  if (numeros.length !== 8) return null
   try {
     const res = await fetch(`https://viacep.com.br/ws/${numeros}/json/`)
     const data = await res.json()
-    if (data.erro) return ''
-    return `${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`
+    if (data.erro) return null
+    return {
+      logradouro: data.logradouro || '',
+      bairro: data.bairro || '',
+      localidade: data.localidade || '',
+      uf: data.uf || '',
+    }
   } catch {
-    return ''
+    return null
   }
+}
+
+export function montarEndereco(det: EnderecoDetalhado, numero?: string): string {
+  const num = numero?.trim()
+  const partes = [det.logradouro, num].filter(Boolean).join(', ')
+  return `${partes}, ${det.bairro} - ${det.localidade}/${det.uf}`
+}
+
+export async function buscarEndereco(cep: string): Promise<string> {
+  const det = await buscarEnderecoDetalhado(cep)
+  return det ? montarEndereco(det) : ''
 }
 
 // Testa todas as sequências de 8 dígitos do código em paralelo contra o ViaCEP.
