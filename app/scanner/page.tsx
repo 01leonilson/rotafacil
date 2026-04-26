@@ -14,7 +14,6 @@ import NavBar from '@/components/NavBar'
 
 export default function Scanner() {
   const router = useRouter()
-  const scannerRef = useRef<HTMLDivElement>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [totalHoje, setTotalHoje] = useState(0)
   const [status, setStatus] = useState<'aguardando' | 'processando' | 'sucesso' | 'erro'>('aguardando')
@@ -46,37 +45,41 @@ export default function Scanner() {
   }, [router])
 
   useEffect(() => {
-    if (!userId || !scannerRef.current) return
+    if (!userId) return
 
-    type SI = { render: (ok: (t: string) => void, err: () => void) => void; clear: () => Promise<void> }
-    let scanner: SI | null = null
+    let qr: { stop: () => Promise<void>; clear: () => void; isScanning: boolean } | null = null
 
-    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
-      scanner = new Html5QrcodeScanner(
-        'scanner-container',
-        { fps: 10, qrbox: { width: 260, height: 160 }, rememberLastUsedCamera: true },
-        false
-      ) as SI
+    import('html5-qrcode').then(({ Html5Qrcode }) => {
+      qr = new Html5Qrcode('scanner-container') as typeof qr
 
-      scanner.render(async (texto) => {
-        if (processando.current) return
-        processando.current = true
-        setStatus('processando')
+      qr!.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 260, height: 160 } },
+        async (texto: string) => {
+          if (processando.current) return
+          processando.current = true
+          setStatus('processando')
 
-        const { cep, endereco, bairro } = await extrairCepAutomatico(texto)
+          const { cep, endereco, bairro } = await extrairCepAutomatico(texto)
 
-        if (cep) {
-          await salvarEntrega(texto, cep, endereco, bairro)
-        } else {
-          setStatus('aguardando')
-          abrirFallback(texto)
-        }
-      }, () => {})
+          if (cep) {
+            await salvarEntrega(texto, cep, endereco, bairro)
+          } else {
+            setStatus('aguardando')
+            abrirFallback(texto)
+          }
+        },
+        () => {}
+      ).catch(() => {})
 
-      scannerInstance.current = scanner
+      scannerInstance.current = qr
     })
 
-    return () => { scanner?.clear().catch(() => {}) }
+    return () => {
+      if (qr?.isScanning) {
+        qr.stop().then(() => qr?.clear()).catch(() => {})
+      }
+    }
   }, [userId])
 
   async function salvarEntrega(codigo: string, cep: string, endereco: string, bairro = '') {
@@ -168,7 +171,7 @@ export default function Scanner() {
 
         {/* Scanner */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-          <div id="scanner-container" ref={scannerRef} />
+          <div id="scanner-container" />
         </div>
 
         <p className="text-center text-xs text-gray-400">
