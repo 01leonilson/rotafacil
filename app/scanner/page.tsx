@@ -24,6 +24,7 @@ export default function Scanner() {
   // Fallback manual
   const [pendente, setPendente] = useState<{ codigo: string } | null>(null)
   const [cepManual, setCepManual] = useState('')
+  const [destinatario, setDestinatario] = useState('')
   const [qd, setQd] = useState('')
   const [lote, setLote] = useState('')
   const [numero, setNumero] = useState('')
@@ -83,13 +84,14 @@ export default function Scanner() {
     }
   }, [userId])
 
-  async function salvarEntrega(codigo: string, cep: string, endereco: string, bairro = '') {
+  async function salvarEntrega(codigo: string, cep: string, endereco: string, bairro = '', dest = '') {
     const { error } = await supabase.from('entregas').insert({
       user_id: userId,
       codigo,
       cep,
       endereco,
       bairro,
+      destinatario: dest,
       status: 'pendente',
     })
     if (error) {
@@ -104,6 +106,7 @@ export default function Scanner() {
   function abrirFallback(codigo: string) {
     setPendente({ codigo })
     setCepManual('')
+    setDestinatario('')
     setQd('')
     setLote('')
     setNumero('')
@@ -138,7 +141,7 @@ export default function Scanner() {
     const det = preview ?? await buscarEnderecoDetalhado(numeros)
     const endereco = det ? montarEndereco(det, { numero, qd, lote }) : cep
     const bairro = det?.bairro ?? ''
-    await salvarEntrega(pendente.codigo, cep, endereco, bairro)
+    await salvarEntrega(pendente.codigo, cep, endereco, bairro, destinatario)
     fecharFallback()
     setSalvando(false)
   }
@@ -222,6 +225,20 @@ export default function Scanner() {
               <p className="text-xs text-green-600 font-medium mb-4">
                 📍 {preview.logradouro ? `${preview.logradouro}, ` : ''}{preview.bairro} — {preview.localidade}/{preview.uf}
               </p>
+            )}
+
+            {/* Destinatário — aparece quando CEP válido */}
+            {cepValido && (
+              <div className="mb-4">
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Destinatário</label>
+                <input
+                  type="text"
+                  placeholder="Nome de quem vai receber"
+                  value={destinatario}
+                  onChange={e => setDestinatario(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-base focus:outline-none focus:border-blue-500"
+                />
+              </div>
             )}
 
             {/* QD / Lote / Número — aparecem quando CEP válido */}

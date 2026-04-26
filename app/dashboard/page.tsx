@@ -229,10 +229,13 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {entrega.bairro && (
-                <p className="text-xs text-gray-500 mt-1 ml-8">{entrega.bairro}</p>
+              {entrega.destinatario && (
+                <p className="text-xs font-medium text-gray-700 mt-1 ml-8">👤 {entrega.destinatario}</p>
               )}
-              <p className="text-sm text-gray-700 mt-1 mb-3 ml-8">
+              {entrega.bairro && (
+                <p className="text-xs text-gray-500 mt-0.5 ml-8">{entrega.bairro}</p>
+              )}
+              <p className="text-sm text-gray-700 mt-0.5 mb-3 ml-8">
                 {entrega.endereco || 'Endereço não encontrado'}
               </p>
 

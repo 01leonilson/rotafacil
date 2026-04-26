@@ -12,6 +12,7 @@ export type Entrega = {
   cep: string
   endereco: string
   bairro: string
+  destinatario: string
   status: 'pendente' | 'entregue'
   foto_url?: string
   criado_em: string
