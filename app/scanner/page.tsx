@@ -55,11 +55,11 @@ export default function Scanner() {
           processando.current = true
           setStatus('processando')
 
-          const { cep, endereco } = await extrairCepAutomatico(decodedText)
+          const { cep, endereco, bairro } = await extrairCepAutomatico(decodedText)
 
           if (cep) {
             // CEP encontrado automaticamente — salva direto
-            await salvarEntrega(decodedText, cep, endereco)
+            await salvarEntrega(decodedText, cep, endereco, bairro)
           } else {
             // CEP não encontrado — pede entrada manual
             setStatus('aguardando')
@@ -78,12 +78,13 @@ export default function Scanner() {
     }
   }, [userId])
 
-  async function salvarEntrega(codigo: string, cep: string, endereco: string) {
+  async function salvarEntrega(codigo: string, cep: string, endereco: string, bairro = '') {
     const { error } = await supabase.from('entregas').insert({
       user_id: userId,
       codigo,
       cep,
       endereco,
+      bairro,
       status: 'pendente',
     })
 
@@ -120,7 +121,8 @@ export default function Scanner() {
     const cep = formatarCep(numeros)
     const det = enderecoPreview ?? await buscarEnderecoDetalhado(numeros)
     const endereco = det ? montarEndereco(det, numeroManual) : ''
-    await salvarEntrega(pendente.codigo, cep, endereco)
+    const bairro = det?.bairro ?? ''
+    await salvarEntrega(pendente.codigo, cep, endereco, bairro)
     setPendente(null)
     setEnderecoPreview(null)
     setNumeroManual('')

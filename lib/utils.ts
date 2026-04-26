@@ -41,7 +41,7 @@ export async function buscarEndereco(cep: string): Promise<string> {
 
 // Testa todas as sequências de 8 dígitos do código em paralelo contra o ViaCEP.
 // Funciona para QR codes (que contêm o CEP no texto) e barcodes onde o CEP está embutido.
-export async function extrairCepAutomatico(codigo: string): Promise<{ cep: string; endereco: string }> {
+export async function extrairCepAutomatico(codigo: string): Promise<{ cep: string; endereco: string; bairro: string }> {
   const numeros = codigo.replace(/\D/g, '')
 
   const candidatos = new Set<string>()
@@ -50,14 +50,16 @@ export async function extrairCepAutomatico(codigo: string): Promise<{ cep: strin
     if (parseInt(sub) >= 1000000) candidatos.add(sub)
   }
 
-  if (candidatos.size === 0) return { cep: '', endereco: '' }
+  if (candidatos.size === 0) return { cep: '', endereco: '', bairro: '' }
 
   const resultados = await Promise.all(
     [...candidatos].map(async (c) => {
-      const endereco = await buscarEndereco(c)
-      return { cep: formatarCep(c), endereco }
+      const det = await buscarEnderecoDetalhado(c)
+      return det
+        ? { cep: formatarCep(c), endereco: montarEndereco(det), bairro: det.bairro }
+        : { cep: '', endereco: '', bairro: '' }
     })
   )
 
-  return resultados.find(r => r.endereco !== '') ?? { cep: '', endereco: '' }
+  return resultados.find(r => r.endereco !== '') ?? { cep: '', endereco: '', bairro: '' }
 }

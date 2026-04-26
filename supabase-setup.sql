@@ -6,11 +6,15 @@ create table if not exists entregas (
   codigo text not null,
   cep text not null,
   endereco text default '',
+  bairro text default '',
   status text default 'pendente' check (status in ('pendente', 'entregue')),
   foto_url text,
   criado_em timestamptz default now(),
   entregue_em timestamptz
 );
+
+-- Migração: adicionar coluna bairro se já existir a tabela
+alter table entregas add column if not exists bairro text default '';
 
 -- Segurança: cada usuário só vê suas próprias entregas
 alter table entregas enable row level security;
